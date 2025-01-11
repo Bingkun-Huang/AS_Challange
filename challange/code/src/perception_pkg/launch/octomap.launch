@@ -1,17 +1,23 @@
 <launch>
+  <node pkg="tf2_ros" type="static_transform_publisher" 
+        name="depth_camera_transform"    args="0 0 0 0 -3.1416 1.5708 /depth_camera Quadrotor/Sensors/DepthCamera" />
+
+  <node pkg="tf2_ros" type="static_transform_publisher" 
+      name="map_to_world"  args="0 0 0 0 0 0 map world" />
+
 
 <!-- Parameters -->
 
 	<!-- Static global frame in which the map will be published -->
 		<!-- <(string, default: /map)> -->
-		<param name="frame_id" type="string" value="world" />
+		<param name="frame_id" type="string" value="map" />
 
 	<!-- Resolution in meter for the map when starting with an empty map -->
-		<param name="resolution" value="1" />
+		<param name="resolution" value="0.5" />
 
 	<!-- The robot's base frame in which ground plane detection is performed (if enabled)  -->
 		<!-- which performs better at SLAM-->
-		<param name="base_frame_id" type="string" value="depth_camera" />
+		<param name="base_frame_id" type="string" value="Quadrotor/Sensors/DepthCamera" />
 
 	<!-- Whether visualization should encode height with different colors   -->
 		<!-- <param name="height_map" value="true" /> -->
@@ -20,8 +26,8 @@
 		<param name="sensor_model/max_range" value="50.0" />
 
 	<!-- Minimum and maximum height of points to consider for insertion in the callback.-->
-    	<param name="occupancy_min_z" value="-10" />
-		<param name="occupancy_max_z" value="10" /> 
+    	<param name="occupancy_min_z" value="-100" />
+		<param name="occupancy_max_z" value="100" /> 
 
 	<!-- when building map, set to false to speed up!!! -->
 		<param name = "latch" value = "false" /> 
@@ -37,9 +43,9 @@
   <node pkg="octomap_server" type="octomap_server_node" name="octomap_server" output="screen">
     <!-- 输入点云话题 -->
     <remap from="cloud_in" to="/realsense/depth/pointcloud" />
-    
+
     <!-- 发布的 Octomap 话题 -->
-    <remap from="/octomap_binary" to="/perception/octomap_binary" />  
+    <remap from="/octomap_binary" to="/perception/octomap_binary" /> 
     <remap from="/octomap_full" to="/perception/octomap_full" />   
     <remap from="/projected_map" to="/perception/projected_map" />   
 
