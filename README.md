@@ -33,5 +33,6 @@ source devel/setup.zsh
 roslaunch simulation simulation.launch
 ```
 The simulation programming and rviz gui will be called automatically.
+ ![Example output](voxel_grid.png)
 
 
