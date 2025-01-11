@@ -1,0 +1,47 @@
+<launch>
+
+<!-- Parameters -->
+
+	<!-- Static global frame in which the map will be published -->
+		<!-- <(string, default: /map)> -->
+		<param name="frame_id" type="string" value="world" />
+
+	<!-- Resolution in meter for the map when starting with an empty map -->
+		<param name="resolution" value="1" />
+
+	<!-- The robot's base frame in which ground plane detection is performed (if enabled)  -->
+		<!-- which performs better at SLAM-->
+		<param name="base_frame_id" type="string" value="depth_camera" />
+
+	<!-- Whether visualization should encode height with different colors   -->
+		<!-- <param name="height_map" value="true" /> -->
+
+	<!-- Maximum range in meter for inserting point cloud.  -->
+		<param name="sensor_model/max_range" value="50.0" />
+
+	<!-- Minimum and maximum height of points to consider for insertion in the callback.-->
+    	<param name="occupancy_min_z" value="-10" />
+		<param name="occupancy_max_z" value="10" /> 
+
+	<!-- when building map, set to false to speed up!!! -->
+		<param name = "latch" value = "false" /> 
+
+	<!-- Plane filter -->
+		<!-- <param name="filter_ground" value="true" />
+		<param name="ground_filter/distance" value="0.04" />
+		<param name="ground_filter/angle" value="0.15" />
+		<param name="ground_filter/plane_distance" value="1" /> -->
+
+
+  <!-- 启动 Octomap Server -->
+  <node pkg="octomap_server" type="octomap_server_node" name="octomap_server" output="screen">
+    <!-- 输入点云话题 -->
+    <remap from="cloud_in" to="/realsense/depth/pointcloud" />
+    
+    <!-- 发布的 Octomap 话题 -->
+    <remap from="/octomap_binary" to="/perception/octomap_binary" />  
+    <remap from="/octomap_full" to="/perception/octomap_full" />   
+    <remap from="/projected_map" to="/perception/projected_map" />   
+
+  </node>
+</launch>

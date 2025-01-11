@@ -1,0 +1,17 @@
+digraph G {
+"world" -> "true_body"[label="Broadcaster: /unity_ros\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1736619664.786 sec old)\nBuffer length: 0.000 sec\n"];
+"world" -> "body"[label="Broadcaster: /state_estimate_corruptor\nAverage rate: 50.369 Hz\nMost recent transform: 1736619664.745 ( 0.041 sec old)\nBuffer length: 4.963 sec\n"];
+"camera" -> "Quadrotor/RGBCameraLeft"[label="Broadcaster: /sim_rgb_camera\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1736619664.786 sec old)\nBuffer length: 0.000 sec\n"];
+"true_body" -> "camera"[label="Broadcaster: /camera_to_body\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1736619664.786 sec old)\nBuffer length: 0.000 sec\n"];
+"depth_camera" -> "Quadrotor/DepthCamera"[label="Broadcaster: /sim_depth_camera\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1736619664.786 sec old)\nBuffer length: 0.000 sec\n"];
+"true_body" -> "depth_camera"[label="Broadcaster: /depth_camera_to_body\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1736619664.786 sec old)\nBuffer length: 0.000 sec\n"];
+"camera" -> "Quadrotor/RGBCameraRight"[label="Broadcaster: /sim_right_camera\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1736619664.786 sec old)\nBuffer length: 0.000 sec\n"];
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1736619664.786"[ shape=plaintext ] ;
+ }->"Quadrotor/TrueState";
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1736619664.786"[ shape=plaintext ] ;
+ }->"world";
+}

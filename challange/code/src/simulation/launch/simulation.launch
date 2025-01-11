@@ -62,4 +62,11 @@
 
   <node pkg="tf2_ros" type="static_transform_publisher"
         name="depth_camera_to_body"      args="0 0 0 0 0 0 /true_body /depth_camera" />
+
+  <node pkg="tf2_ros" type="static_transform_publisher" 
+        name="depth_camera_transform"    args="0 0 0 0 0 0 /depth_camera Quadrotor/Sensors/DepthCamera" />
+
+  <include file="$(find perception_pkg)/launch/pointcloud.launch" />
+    <include file="$(find perception_pkg)/launch/octomap.launch" />
+
 </launch>

@@ -1,0 +1,15 @@
+<launch>
+  <!-- 定义参数 -->
+  <arg name="name" default="Drone" />
+  <!-- 启动 Nodelet 管理器 -->
+  <node pkg="nodelet" type="nodelet" name="$(arg name)_nodelet_manager" args="manager" />
+
+  <!-- 加载点云生成 Nodelet -->
+  <node pkg="nodelet" type="nodelet" name="$(arg name)_pointcloud_nodelet"
+        args="load depth_image_proc/point_cloud_xyz $(arg name)_nodelet_manager">
+    <!-- 话题重映射 -->
+    <remap from="catmera_info" to="/realsense/depth/camera_info"/>
+    <remap from="image_rect" to="/realsense/depth/image"/>
+    <remap from="points" to="/realsense/depth/pointcloud"/>
+  </node>
+</launch>
