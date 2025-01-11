@@ -26,6 +26,12 @@ cd AS_Challange
 chmod -x .requirements.sh
 ./requirements.sh
 ```
-
+### 2. Run
+Then, read to run simulation:
+```bash
+source devel/setup.zsh  
+roslaunch simulation simulation.launch
+```
+The simulation programming and rviz gui will be called automatically.
 
 
