@@ -7,6 +7,7 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <mav_msgs/Actuators.h>
 #include <nav_msgs/Odometry.h>
+#include <trajectory_msgs/MultiDOFJointTrajectory.h>
 #include <trajectory_msgs/MultiDOFJointTrajectoryPoint.h>
 #include <math.h>
 #include <std_msgs/Float64.h>
@@ -111,7 +112,7 @@ class controllerNode{
   }
 
 public:
-  controllerNode():e3(0,0,1),F2W(4,4),hz(1000.0){
+  controllerNode():e3(0,0,1),F2W(4,4),hz(1000.0),xd(0,-9,7){
 
       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       //  PART 2 |  Initialize ROS callback handlers
@@ -130,9 +131,9 @@ public:
       //
       // ~~~~ begin solution
       
-      desired_state = nh.subscribe("desired_state", 1, &controllerNode::onDesiredState, this);
-      current_state = nh.subscribe("current_state_est", 1, &controllerNode::onCurrentState, this);
-      prop_speeds = nh.advertise<mav_msgs::Actuators>("rotor_speed_cmds", 1);
+      desired_state = nh.subscribe("desired_state", 1000, &controllerNode::onDesiredState, this);
+      current_state = nh.subscribe("current_state", 1000, &controllerNode::onCurrentState, this);
+      prop_speeds = nh.advertise<mav_msgs::Actuators>("rotor_speed_cmds", 1000);
       timer = nh.createTimer(ros::Rate(hz), &controllerNode::controlLoop, this);
 
       // ~~~~ end solution
@@ -152,14 +153,10 @@ public:
       // Controller gains
       //
 
-      kx = 12.7;
-      kv = 5.8;
-      kr = 8.8;
-      komega = 1.15;
-//      kx = 10;
-//      kv = 5;
-//      kr = 11;
-//      komega = 1;
+      nh.getParam("/params/kx", kx);
+      nh.getParam("/params/kv", kv);
+      nh.getParam("/params/kr", kr);
+      nh.getParam("/params/komega", komega);
 
       // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
       //                                 end part 6
@@ -171,10 +168,11 @@ public:
       cf = 1e-3;
       g = 9.81;
       d = 0.3;
+      yawd = PI/2;
       J << 1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0;
   }
 
-  void onDesiredState(const trajectory_msgs::MultiDOFJointTrajectoryPoint& des_state){
+  void onDesiredState(const trajectory_msgs::MultiDOFJointTrajectory& des_state){
 
       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       //  PART 3 | Objective: fill in xd, vd, ad, yawd
@@ -189,17 +187,17 @@ public:
       // ~~~~ begin solution
       
       // Position
-      geometry_msgs::Vector3 t = des_state.transforms[0].translation;
+      geometry_msgs::Vector3 t = des_state.points[0].transforms[0].translation;
       xd << t.x, t.y, t.z;
       // ROS_INFO_NAMED("onDesiredState", "POS: %f %f %f", t.x, t.y, t.z);
 
       // Velocities
-      geometry_msgs::Vector3 v = des_state.velocities[0].linear;
+      geometry_msgs::Vector3 v = des_state.points[0].velocities[0].linear;
       vd << v.x, v.y, v.z;
       // ROS_INFO_NAMED("onDesiredState", "VEL: %f %f %f", v.x, v.y, v.z);
 
       // Accelerations
-      geometry_msgs::Vector3 a = des_state.accelerations[0].linear;
+      geometry_msgs::Vector3 a = des_state.points[0].accelerations[0].linear;
       ad << a.x, a.y, a.z;
       // ROS_INFO_NAMED("onDesiredState", "ACC: %f %f %f", a.x, a.y, a.z);
 
@@ -215,8 +213,14 @@ public:
       // ~~~~ begin solution
       
       tf::Quaternion q;
-      tf::quaternionMsgToTF(des_state.transforms[0].rotation , q);
+      tf::quaternionMsgToTF(des_state.points[0].transforms[0].rotation , q);
       yawd = tf::getYaw(q);
+      if (v.x == 0) {
+        yawd = 0;
+      }
+      else {
+      yawd = atan2(v.y, v.x);
+      }
       // ROS_INFO_NAMED("onDesiredState", "YAW: %f", yawd);
 
       // ~~~~ end solution
@@ -225,6 +229,7 @@ public:
       //                                 end part 3
       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   }
+
 
   void onCurrentState(const nav_msgs::Odometry& cur_state){
       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -407,7 +412,8 @@ public:
   }
 };
 
-int main(int argc, char** argv){
+int main(int argc, char** argv)
+{
   ros::init(argc, argv, "controller_node");
   ROS_INFO_NAMED("controller", "Controller started!");
   controllerNode n;
