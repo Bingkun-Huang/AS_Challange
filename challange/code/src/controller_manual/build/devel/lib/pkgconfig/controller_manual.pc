@@ -1,0 +1,8 @@
+prefix=/home/haowen/AS_Challange/challange/code/src/controller_manual/build/devel
+
+Name: controller_manual
+Description: Description of controller_manual
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
