@@ -13,6 +13,25 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   tf
+  tf_conversions
+  nav_msgs
+  trajectory_msgs
+)
+
+## 找到Eigen3库
+find_package(Eigen3 REQUIRED)
+
+## 声明catkin包
+catkin_package(
+  INCLUDE_DIRS include
+  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs tf
+)
+
+## 指定include目录
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIR}
 )
 
 add_executable(manual_control_node src/manual_control_node.cpp)

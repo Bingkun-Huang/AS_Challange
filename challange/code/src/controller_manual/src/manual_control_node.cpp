@@ -6,16 +6,19 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <eigen_conversions/eigen_msg.h>
-#include <mav_msgs/Actuators.h>
+
 #include <nav_msgs/Odometry.h>
 #define PI M_PI
 #include <math.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/UInt8.h>
 #include <eigen3/Eigen/Dense>
 #include <trajectory_msgs/MultiDOFJointTrajectory.h>
 #include <trajectory_msgs/MultiDOFJointTrajectoryPoint.h>
 #include <geometry_msgs/Transform.h>
 #include <geometry_msgs/Twist.h>
+
+// #include <mav_msgs/Actuators.h>
 
 class Manual_controlNode{
   ros::NodeHandle nh;
@@ -97,7 +100,11 @@ public:
                cur_state.twist.twist.angular.z;
 
       Eigen::Quaterniond q;
-      tf::quaternionMsgToEigen (cur_state.pose.pose.orientation, q);
+
+      // tf::quaternionMsgToEigen (cur_state.pose.pose.orientation, q);
+      const geometry_msgs::Quaternion& orientation = cur_state.pose.pose.orientation;
+      q = Eigen::Quaterniond(orientation.w, orientation.x, orientation.y, orientation.z);
+
       R = q.toRotationMatrix();
       omega = R.transpose()*omega; // Rotate omega
 
@@ -153,20 +160,25 @@ public:
       // LIMITATION
       double min_height = -10.0;
       double max_height = 10.0;
-      xd(2) = std::clamp(xd(2), min_height, max_height);
+      // xd(2) = std::clamp(xd(2), min_height, max_height);
+      xd(2) = std::max(min_height, std::min(xd(2), max_height));
       yawd = atan2(sin(yawd), cos(yawd));
 
       // 2. nav_msgs::Odometry
       // nav_msgs::Odometry des_odom;
-      trajectory_msgs::MultiDOFJointTrajectory traj_smg;
-      des_odom.header.stamp = ros::Time::now();
-      des_odom.header.frame_id = "world"; // change? ######################################
+      trajectory_msgs::MultiDOFJointTrajectory traj_msg;
+      // des_odom.header.stamp = ros::Time::now();
+      // des_odom.header.frame_id = "world";
+      traj_msg.header.stamp = ros::Time::now();
+      traj_msg.header.frame_id = "world"; // change? ######################################
 
       // position
       // des_odom.pose.pose.position.x = xd(0);
       // des_odom.pose.pose.position.y = xd(1);
       // des_odom.pose.pose.position.z = xd(2);
 
+      // Create a trajectory point
+      trajectory_msgs::MultiDOFJointTrajectoryPoint traj_point;
       // Set position and yaw
       geometry_msgs::Transform transform;
       transform.translation.x = xd(0);
@@ -177,7 +189,7 @@ public:
       tf2::Quaternion q_;
       q_.setRPY(0.0, 0.0, yawd);
       // des_odom.pose.pose.orientation = tf2::toMsg(q_);
-      transform.rotation = tf2::toMsg(q);
+      transform.rotation = tf2::toMsg(q_);
 
       // Add the transform to the trajectory point
       traj_point.transforms.push_back(transform);
@@ -189,7 +201,7 @@ public:
 
       // 3. publish desired_state
       // desired_state.publish(des_odom);
-      desired_state.publish(traj_smg);
+      desired_state.publish(traj_msg);
 
       // linear_increment.setZero();
       // angular_increment = 0.0;
