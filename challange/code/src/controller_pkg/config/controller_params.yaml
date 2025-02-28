@@ -1,7 +1,0 @@
-params: {
-    kx : 5,
-    kv : 2,
-    kr : 2,
-    komega : 1.00
-}
-

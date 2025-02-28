@@ -1,8 +1,0 @@
-prefix=/usr/local
-
-Name: controller_manual
-Description: Description of controller_manual
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
