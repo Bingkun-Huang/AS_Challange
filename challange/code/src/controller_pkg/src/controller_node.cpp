@@ -7,8 +7,8 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <mav_msgs/Actuators.h>
 #include <nav_msgs/Odometry.h>
-#include <trajectory_msgs/MultiDOFJointTrajectory.h>
 #include <trajectory_msgs/MultiDOFJointTrajectoryPoint.h>
+#include <trajectory_msgs/MultiDOFJointTrajectory.h>
 #include <math.h>
 #include <std_msgs/Float64.h>
 
@@ -96,7 +96,8 @@ class controllerNode{
   Eigen::Vector3d xd;    // desired position of the UAV's c.o.m. in the world frame
   Eigen::Vector3d vd;    // desired velocity of the UAV's c.o.m. in the world frame
   Eigen::Vector3d ad;    // desired acceleration of the UAV's c.o.m. in the world frame
-  double yawd;           // desired yaw angle
+  double yawd = M_PI;    // desired yaw angle
+  double last_yawd;
 
   double hz;             // frequency of the main control loop
 
@@ -112,7 +113,7 @@ class controllerNode{
   }
 
 public:
-  controllerNode():e3(0,0,1),F2W(4,4),hz(1000.0),xd(0,-9,7){
+  controllerNode():e3(0,0,1),F2W(4,4),hz(1000.0){
 
       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       //  PART 2 |  Initialize ROS callback handlers
@@ -126,15 +127,16 @@ public:
       //    given by the "hz" variable
       //
       // Hints: 
-      //  - use the nh variable already available as a class member
-      //  - read the lab 3 handout to fnd the message type
+      //  - use the nh variable already available as a class memberdsaz
+      //  - read the lab 3 handout to find the message type
       //
       // ~~~~ begin solution
       
-      desired_state = nh.subscribe("desired_state", 1000, &controllerNode::onDesiredState, this);
-      current_state = nh.subscribe("current_state", 1000, &controllerNode::onCurrentState, this);
-      prop_speeds = nh.advertise<mav_msgs::Actuators>("rotor_speed_cmds", 1000);
+      desired_state = nh.subscribe("command/trajectory", 1, &controllerNode::onDesiredState, this);
+      current_state = nh.subscribe("current_state_est", 1, &controllerNode::onCurrentState, this);
+      prop_speeds = nh.advertise<mav_msgs::Actuators>("rotor_speed_cmds", 1);
       timer = nh.createTimer(ros::Rate(hz), &controllerNode::controlLoop, this);
+      last_yawd = M_PI;
 
       // ~~~~ end solution
 
@@ -153,10 +155,15 @@ public:
       // Controller gains
       //
 
-      nh.getParam("/params/kx", kx);
-      nh.getParam("/params/kv", kv);
-      nh.getParam("/params/kr", kr);
-      nh.getParam("/params/komega", komega);
+      // nh.getParam("/params/kx", kx);
+      // nh.getParam("/params/kv", kv);
+      // nh.getParam("/params/kr", kr);
+      // nh.getParam("/params/komega", komega);
+
+      kx = 12.7;
+      kv = 5.8;
+      kr = 8.8;
+      komega = 1.15;
 
       // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
       //                                 end part 6
@@ -168,7 +175,6 @@ public:
       cf = 1e-3;
       g = 9.81;
       d = 0.3;
-      yawd = PI/2;
       J << 1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0;
   }
 
@@ -212,16 +218,21 @@ public:
       //
       // ~~~~ begin solution
       
-      tf::Quaternion q;
-      tf::quaternionMsgToTF(des_state.points[0].transforms[0].rotation , q);
-      yawd = tf::getYaw(q);
-      if (v.x == 0) {
-        yawd = 0;
+      // tf::Quaternion q;
+      // tf::quaternionMsgToTF(des_state.points[0].transforms[0].rotation , q);
+      // yawd = tf::getYaw(q);
+
+      double speedThreshold = 0.01; // definite minimum velocity threshold to avoid division by zero
+      double speed = sqrt(v.x * v.x + v.y * v.y);
+
+      if (speed > speedThreshold) {
+
+        // calculate yaw angle
+        yawd = atan2(v.y, v.x);
+      } else {
+        // speed smaller than threshold, keep yaw not update
+        // yawd = yawd;
       }
-      else {
-      yawd = atan2(v.y, v.x);
-      }
-      // ROS_INFO_NAMED("onDesiredState", "YAW: %f", yawd);
 
       // ~~~~ end solution
       //
@@ -229,7 +240,6 @@ public:
       //                                 end part 3
       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   }
-
 
   void onCurrentState(const nav_msgs::Odometry& cur_state){
       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -401,6 +411,9 @@ public:
     msg.angular_velocities[1] = signed_sqrt(props[1]);
     msg.angular_velocities[2] = signed_sqrt(props[2]);
     msg.angular_velocities[3] = signed_sqrt(props[3]);
+
+    // ROS_INFO("ROTOR_SPEED: %f, %f, %f, %f", msg.angular_velocities[0], msg.angular_velocities[1], msg.angular_velocities[2], msg.angular_velocities[3]);
+    
 
     prop_speeds.publish(msg);
 
