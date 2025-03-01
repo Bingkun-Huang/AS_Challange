@@ -2,14 +2,15 @@
 
 #include <ros/console.h>
 
-#include <tf/transform_datatypes.h>
-#include <tf_conversions/tf_eigen.h>
 #include <eigen_conversions/eigen_msg.h>
+#include <math.h>
 #include <mav_msgs/Actuators.h>
 #include <nav_msgs/Odometry.h>
-#include <trajectory_msgs/MultiDOFJointTrajectoryPoint.h>
-#include <math.h>
 #include <std_msgs/Float64.h>
+#include <tf/transform_datatypes.h>
+#include <tf_conversions/tf_eigen.h>
+#include <trajectory_msgs/MultiDOFJointTrajectory.h>
+#include <trajectory_msgs/MultiDOFJointTrajectoryPoint.h>
 
 #define PI M_PI
 
@@ -39,7 +40,7 @@
 
 #include <eigen3/Eigen/Dense>
 
-// If you choose to use Eigen, tf provides useful functions to convert tf 
+// If you choose to use Eigen, tf provides useful functions to convert tf
 // messages to eigen types and vice versa, have a look to the documentation:
 // http://docs.ros.org/melodic/api/eigen_conversions/html/namespacetf.html
 #include <eigen_conversions/eigen_msg.h>
@@ -48,7 +49,7 @@
 //                                 end part 0
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class controllerNode{
+class controllerNode {
   ros::NodeHandle nh;
 
   // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -75,188 +76,196 @@ class controllerNode{
   double kx, kv, kr, komega; // controller gains - [1] eq (15), (16)
 
   // Physical constants (we will set them below)
-  double m;              // mass of the UAV
-  double g;              // gravity acceleration
-  double d;              // distance from the center of propellers to the c.o.m.
-  double cf,             // Propeller lift coefficient
-         cd;             // Propeller drag coefficient
-  Eigen::Matrix3d J;     // Inertia Matrix
-  Eigen::Vector3d e3;    // [0,0,1]
-  Eigen::MatrixXd F2W;   // Wrench-rotor speeds map
+  double m;            // mass of the UAV
+  double g;            // gravity acceleration
+  double d;            // distance from the center of propellers to the c.o.m.
+  double cf,           // Propeller lift coefficient
+      cd;              // Propeller drag coefficient
+  Eigen::Matrix3d J;   // Inertia Matrix
+  Eigen::Vector3d e3;  // [0,0,1]
+  Eigen::MatrixXd F2W; // Wrench-rotor speeds map
 
   // Controller internals (you will have to set them below)
   // Current state
-  Eigen::Vector3d x;     // current position of the UAV's c.o.m. in the world frame
-  Eigen::Vector3d v;     // current velocity of the UAV's c.o.m. in the world frame
-  Eigen::Matrix3d R;     // current orientation of the UAV
-  Eigen::Vector3d omega; // current angular velocity of the UAV's c.o.m. in the *body* frame
+  Eigen::Vector3d x; // current position of the UAV's c.o.m. in the world frame
+  Eigen::Vector3d v; // current velocity of the UAV's c.o.m. in the world frame
+  Eigen::Matrix3d R; // current orientation of the UAV
+  Eigen::Vector3d
+      omega; // current angular velocity of the UAV's c.o.m. in the *body* frame
 
   // Desired state
-  Eigen::Vector3d xd;    // desired position of the UAV's c.o.m. in the world frame
-  Eigen::Vector3d vd;    // desired velocity of the UAV's c.o.m. in the world frame
-  Eigen::Vector3d ad;    // desired acceleration of the UAV's c.o.m. in the world frame
-  double yawd;           // desired yaw angle
+  Eigen::Vector3d xd; // desired position of the UAV's c.o.m. in the world frame
+  Eigen::Vector3d vd; // desired velocity of the UAV's c.o.m. in the world frame
+  Eigen::Vector3d
+      ad;      // desired acceleration of the UAV's c.o.m. in the world frame
+  double yawd; // desired yaw angle
 
-  double hz;             // frequency of the main control loop
+  double hz; // frequency of the main control loop
 
-
-  static Eigen::Vector3d Vee(const Eigen::Matrix3d& in){
+  static Eigen::Vector3d Vee(const Eigen::Matrix3d &in) {
     Eigen::Vector3d out;
-    out << in(2,1), in(0,2), in(1,0);
+    out << in(2, 1), in(0, 2), in(1, 0);
     return out;
   }
 
-  static double signed_sqrt(double val){
-    return val>0?sqrt(val):-sqrt(-val);
+  static double signed_sqrt(double val) {
+    return val > 0 ? sqrt(val) : -sqrt(-val);
   }
 
 public:
-  controllerNode():e3(0,0,1),F2W(4,4),hz(1000.0){
+  controllerNode() : e3(0, 0, 1), F2W(4, 4), hz(1000.0), xd(0, -9, 7) {
 
-      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      //  PART 2 |  Initialize ROS callback handlers
-      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-      //
-      // In this section, you need to initialize your handlers from part 1.
-      // Specifically:
-      //  - bind controllerNode::onDesiredState() to the topic "desired_state"
-      //  - bind controllerNode::onCurrentState() to the topic "current_state"
-      //  - bind controllerNode::controlLoop() to the created timer, at frequency
-      //    given by the "hz" variable
-      //
-      // Hints: 
-      //  - use the nh variable already available as a class member
-      //  - read the lab 3 handout to fnd the message type
-      //
-      // ~~~~ begin solution
-      
-      desired_state = nh.subscribe("desired_state", 1, &controllerNode::onDesiredState, this);
-      current_state = nh.subscribe("current_state_est", 1, &controllerNode::onCurrentState, this);
-      prop_speeds = nh.advertise<mav_msgs::Actuators>("rotor_speed_cmds", 1);
-      timer = nh.createTimer(ros::Rate(hz), &controllerNode::controlLoop, this);
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //  PART 2 |  Initialize ROS callback handlers
+    // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+    //
+    // In this section, you need to initialize your handlers from part 1.
+    // Specifically:
+    //  - bind controllerNode::onDesiredState() to the topic "desired_state"
+    //  - bind controllerNode::onCurrentState() to the topic "current_state"
+    //  - bind controllerNode::controlLoop() to the created timer, at frequency
+    //    given by the "hz" variable
+    //
+    // Hints:
+    //  - use the nh variable already available as a class member
+    //  - read the lab 3 handout to fnd the message type
+    //
+    // ~~~~ begin solution
 
-      // ~~~~ end solution
+    desired_state = nh.subscribe("desired_state", 1000,
+                                 &controllerNode::onDesiredState, this);
+    current_state = nh.subscribe("current_state", 1000,
+                                 &controllerNode::onCurrentState, this);
+    prop_speeds = nh.advertise<mav_msgs::Actuators>("rotor_speed_cmds", 1000);
+    timer = nh.createTimer(ros::Rate(hz), &controllerNode::controlLoop, this);
 
-      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-      //                                 end part 2
-      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // ~~~~ end solution
 
+    // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+    //                                 end part 2
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      //  PART 6 [NOTE: save this for last] |  Tune your gains!
-      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-      //
-      // Live the life of a control engineer! Tune these parameters for a fast
-      // and accurate controller.
-      //
-      // Controller gains
-      //
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //  PART 6 [NOTE: save this for last] |  Tune your gains!
+    // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+    //
+    // Live the life of a control engineer! Tune these parameters for a fast
+    // and accurate controller.
+    //
+    // Controller gains
+    //
 
-      kx = 12.7;
-      kv = 5.8;
-      kr = 8.8;
-      komega = 1.15;
-//      kx = 10;
-//      kv = 5;
-//      kr = 11;
-//      komega = 1;
+    nh.getParam("/params/kx", kx);
+    nh.getParam("/params/kv", kv);
+    nh.getParam("/params/kr", kr);
+    nh.getParam("/params/komega", komega);
 
-      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-      //                                 end part 6
-      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+    //                                 end part 6
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-      // Initialize constants
-      m = 1.0;
-      cd = 1e-5;
-      cf = 1e-3;
-      g = 9.81;
-      d = 0.3;
-      J << 1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0;
+    // Initialize constants
+    m = 1.0;
+    cd = 1e-5;
+    cf = 1e-3;
+    g = 9.81;
+    d = 0.3;
+    yawd = PI / 2;
+    J << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
   }
 
-  void onDesiredState(const trajectory_msgs::MultiDOFJointTrajectoryPoint& des_state){
+  void
+  onDesiredState(const trajectory_msgs::MultiDOFJointTrajectory &des_state) {
 
-      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      //  PART 3 | Objective: fill in xd, vd, ad, yawd
-      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-      //
-      // 3.1 Get the desired position, velocity and acceleration from the in-
-      //     coming ROS message and fill in the class member variables xd, vd
-      //     and ad accordingly. You can ignore the angular acceleration.
-      //
-      // Hint: use "v << vx, vy, vz;" to fill in a vector with Eigen.
-      //
-      // ~~~~ begin solution
-      
-      // Position
-      geometry_msgs::Vector3 t = des_state.transforms[0].translation;
-      xd << t.x, t.y, t.z;
-      // ROS_INFO_NAMED("onDesiredState", "POS: %f %f %f", t.x, t.y, t.z);
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //  PART 3 | Objective: fill in xd, vd, ad, yawd
+    // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+    //
+    // 3.1 Get the desired position, velocity and acceleration from the in-
+    //     coming ROS message and fill in the class member variables xd, vd
+    //     and ad accordingly. You can ignore the angular acceleration.
+    //
+    // Hint: use "v << vx, vy, vz;" to fill in a vector with Eigen.
+    //
+    // ~~~~ begin solution
 
-      // Velocities
-      geometry_msgs::Vector3 v = des_state.velocities[0].linear;
-      vd << v.x, v.y, v.z;
-      // ROS_INFO_NAMED("onDesiredState", "VEL: %f %f %f", v.x, v.y, v.z);
+    // Position
+    geometry_msgs::Vector3 t = des_state.points[0].transforms[0].translation;
+    xd << t.x, t.y, t.z;
+    // ROS_INFO_NAMED("onDesiredState", "POS: %f %f %f", t.x, t.y, t.z);
 
-      // Accelerations
-      geometry_msgs::Vector3 a = des_state.accelerations[0].linear;
-      ad << a.x, a.y, a.z;
-      // ROS_INFO_NAMED("onDesiredState", "ACC: %f %f %f", a.x, a.y, a.z);
+    // Velocities
+    geometry_msgs::Vector3 v = des_state.points[0].velocities[0].linear;
+    vd << v.x, v.y, v.z;
+    // ROS_INFO_NAMED("onDesiredState", "VEL: %f %f %f", v.x, v.y, v.z);
 
-      // ~~~~ end solution
-      //
-      // 3.2 Extract the yaw component from the quaternion in the incoming ROS
-      //     message and store in the yawd class member variable
-      //
-      //  Hints:
-      //    - use the methods tf::getYaw(...)
-      //    - maybe you want to use also tf::quaternionMsgToTF(...)
-      //
-      // ~~~~ begin solution
-      
-      tf::Quaternion q;
-      tf::quaternionMsgToTF(des_state.transforms[0].rotation , q);
-      yawd = tf::getYaw(q);
-      // ROS_INFO_NAMED("onDesiredState", "YAW: %f", yawd);
+    // Accelerations
+    geometry_msgs::Vector3 a = des_state.points[0].accelerations[0].linear;
+    ad << a.x, a.y, a.z;
+    // ROS_INFO_NAMED("onDesiredState", "ACC: %f %f %f", a.x, a.y, a.z);
 
-      // ~~~~ end solution
-      //
-      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-      //                                 end part 3
-      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // ~~~~ end solution
+    //
+    // 3.2 Extract the yaw component from the quaternion in the incoming ROS
+    //     message and store in the yawd class member variable
+    //
+    //  Hints:
+    //    - use the methods tf::getYaw(...)
+    //    - maybe you want to use also tf::quaternionMsgToTF(...)
+    //
+    // ~~~~ begin solution
+
+    tf::Quaternion q;
+    tf::quaternionMsgToTF(des_state.points[0].transforms[0].rotation, q);
+    yawd = tf::getYaw(q);
+    if (v.x == 0) {
+      yawd = 0;
+    } else {
+      yawd = atan2(v.y, v.x);
+    }
+    // ROS_INFO_NAMED("onDesiredState", "YAW: %f", yawd);
+
+    // ~~~~ end solution
+    //
+    // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+    //                                 end part 3
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   }
 
-  void onCurrentState(const nav_msgs::Odometry& cur_state){
-      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      //  PART 4 | Objective: fill in x, v, R and omega
-      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-      //
-      // Get the current position and velocity from the incoming ROS message and
-      // fill in the class member variables x, v, R and omega accordingly.
-      //
-      //  CAVEAT: cur_state.twist.twist.angular is in the world frame, while omega
-      //          needs to be in the body frame!
-      //
-      // ~~~~ begin solution
-      
-      x << cur_state.pose.pose.position.x,cur_state.pose.pose.position.y,cur_state.pose.pose.position.z;
-      v << cur_state.twist.twist.linear.x,cur_state.twist.twist.linear.y,cur_state.twist.twist.linear.z;
-      omega << cur_state.twist.twist.angular.x,cur_state.twist.twist.angular.y,cur_state.twist.twist.angular.z;
-      Eigen::Quaterniond q;
-      tf::quaternionMsgToEigen (cur_state.pose.pose.orientation, q);
-      R = q.toRotationMatrix();
+  void onCurrentState(const nav_msgs::Odometry &cur_state) {
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //  PART 4 | Objective: fill in x, v, R and omega
+    // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+    //
+    // Get the current position and velocity from the incoming ROS message and
+    // fill in the class member variables x, v, R and omega accordingly.
+    //
+    //  CAVEAT: cur_state.twist.twist.angular is in the world frame, while omega
+    //          needs to be in the body frame!
+    //
+    // ~~~~ begin solution
 
-      // Rotate omega
-      omega = R.transpose()*omega;
+    x << cur_state.pose.pose.position.x, cur_state.pose.pose.position.y,
+        cur_state.pose.pose.position.z;
+    v << cur_state.twist.twist.linear.x, cur_state.twist.twist.linear.y,
+        cur_state.twist.twist.linear.z;
+    omega << cur_state.twist.twist.angular.x, cur_state.twist.twist.angular.y,
+        cur_state.twist.twist.angular.z;
+    Eigen::Quaterniond q;
+    tf::quaternionMsgToEigen(cur_state.pose.pose.orientation, q);
+    R = q.toRotationMatrix();
 
-      // ~~~~ end solution
-      //
-      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-      //                                 end part 4
-      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Rotate omega
+    omega = R.transpose() * omega;
+
+    // ~~~~ end solution
+    //
+    // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+    //                                 end part 4
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   }
 
-  void controlLoop(const ros::TimerEvent& t){
+  void controlLoop(const ros::TimerEvent &t) {
     Eigen::Vector3d ex, ev, er, eomega;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -267,7 +276,7 @@ public:
     //  Hint: [1], eq. (6), (7)
     //
     // ~~~~ begin solution
-    
+
     ex = x - xd;
     ev = v - vd;
 
@@ -289,8 +298,8 @@ public:
     //    - remember to normalize your axes!
     //
     // ~~~~ begin solution
-    
-    Eigen::Vector3d b_3d = -kx*ex - kv*ev + m*g*e3 + m*ad;
+
+    Eigen::Vector3d b_3d = -kx * ex - kv * ev + m * g * e3 + m * ad;
     b_3d.normalize();
 
     Eigen::Vector3d b_1d(cos(yawd), sin(yawd), 0);
@@ -304,7 +313,8 @@ public:
 
     // ~~~~ end solution
     //
-    // 5.3 Compute the orientation error (er) and the rotation-rate error (eomega)
+    // 5.3 Compute the orientation error (er) and the rotation-rate error
+    // (eomega)
     //  Hints:
     //     - [1] eq. (10) and (11)
     //     - you can use the Vee() static method implemented above
@@ -314,8 +324,8 @@ public:
     //          effects on the closed-loop dynamics.
     //
     // ~~~~ begin solution
-    
-    er = 0.5 * Vee(Rd.transpose()*R - R.transpose()*Rd);
+
+    er = 0.5 * Vee(Rd.transpose() * R - R.transpose() * Rd);
     eomega = -omega;
 
     // ~~~~ end solution
@@ -336,12 +346,13 @@ public:
     //      effects on the closed-loop dynamics.
     //
     // ~~~~ begin solution
-    
-    Eigen::Vector3d errs = -kx*ex - kv*ev + m*g*e3 + m*ad;
 
-    double f = errs.dot(R*e3);
-    Eigen::Vector3d torques = -kr*er -komega*eomega + omega.cross(J*omega);
-    
+    Eigen::Vector3d errs = -kx * ex - kv * ev + m * g * e3 + m * ad;
+
+    double f = errs.dot(R * e3);
+    Eigen::Vector3d torques =
+        -kr * er - komega * eomega + omega.cross(J * omega);
+
     Eigen::Vector4d wrench(f, torques.x(), torques.y(), torques.z());
 
     // ~~~~ end solution
@@ -356,28 +367,27 @@ public:
     //       Namely: C_{\tau f} = c_d / c_f
     //               (LHS paper [1], RHS our conventions [lecture notes])
     //
-    //     - Compare the reference frames in the Lab 3 handout with Fig. 1 in the
+    //     - Compare the reference frames in the Lab 3 handout with Fig. 1 in
+    //     the
     //       paper. In the paper [1], the x-body axis [b1] is aligned with a
     //       quadrotor arm, whereas for us, it is 45° from it (i.e., "halfway"
     //       between b1 and b2). To resolve this, check out equation 6.9 in the
     //       lecture notes!
     //
     //     - The thrust forces are **in absolute value** proportional to the
-    //       square of the propeller speeds. Negative propeller speeds - although
-    //       uncommon - should be a possible outcome of the controller when
-    //       appropriate. Note that this is the case in unity but not in real
-    //       life, where propellers are aerodynamically optimized to spin in one
-    //       direction!
+    //       square of the propeller speeds. Negative propeller speeds -
+    //       although uncommon - should be a possible outcome of the controller
+    //       when appropriate. Note that this is the case in unity but not in
+    //       real life, where propellers are aerodynamically optimized to spin
+    //       in one direction!
     //
     // ~~~~ begin solution
-    
-    double d_hat = d/sqrt(2);
+
+    double d_hat = d / sqrt(2);
     Eigen::Matrix4d F;
 
-    F << cf, cf, cf, cf, 
-        cf*d_hat, cf*d_hat, -cf*d_hat, -cf*d_hat, 
-        -cf*d_hat, cf*d_hat, cf*d_hat, -cf*d_hat,
-        cd, -cd, cd, -cd;
+    F << cf, cf, cf, cf, cf * d_hat, cf * d_hat, -cf * d_hat, -cf * d_hat,
+        -cf * d_hat, cf * d_hat, cf * d_hat, -cf * d_hat, cd, -cd, cd, -cd;
 
     // ~~~~ end solution
     //
@@ -387,8 +397,8 @@ public:
     // to use signed_sqrt function).
     //
     // ~~~~ begin solution
-    
-    Eigen::Vector4d props = F.inverse()*wrench;
+
+    Eigen::Vector4d props = F.inverse() * wrench;
 
     mav_msgs::Actuators msg;
     msg.angular_velocities.resize(4);
@@ -407,7 +417,7 @@ public:
   }
 };
 
-int main(int argc, char** argv){
+int main(int argc, char **argv) {
   ros::init(argc, argv, "controller_node");
   ROS_INFO_NAMED("controller", "Controller started!");
   controllerNode n;

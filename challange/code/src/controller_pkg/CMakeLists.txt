@@ -42,3 +42,11 @@ target_link_libraries(controller_node ${catkin_LIBRARIES})
 add_executable(traj_publisher src/traj_publisher.cpp)
 add_dependencies(traj_publisher ${catkin_EXPORTED_TARGETS})
 target_link_libraries(traj_publisher ${catkin_LIBRARIES})
+
+add_executable(keyboard_node src/keyboard_node.cpp)
+add_dependencies(keyboard_node ${catkin_EXPORTED_TARGETS})
+target_link_libraries(keyboard_node ${catkin_LIBRARIES})
+
+add_executable(traj_pub_node src/traj_pub_node.cpp)
+add_dependencies(traj_pub_node ${catkin_EXPORTED_TARGETS})
+target_link_libraries(traj_pub_node ${catkin_LIBRARIES})
