@@ -6,6 +6,12 @@
 #include <math.h>
 #include <mav_msgs/Actuators.h>
 #include <nav_msgs/Odometry.h>
+<<<<<<< HEAD
+=======
+#include <trajectory_msgs/MultiDOFJointTrajectory.h>
+#include <trajectory_msgs/MultiDOFJointTrajectoryPoint.h>
+#include <math.h>
+>>>>>>> main
 #include <std_msgs/Float64.h>
 #include <tf/transform_datatypes.h>
 #include <tf_conversions/tf_eigen.h>
@@ -113,6 +119,7 @@ class controllerNode {
   }
 
 public:
+<<<<<<< HEAD
   controllerNode() : e3(0, 0, 1), F2W(4, 4), hz(1000.0), xd(0, -9, 7) {
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -263,6 +270,155 @@ public:
     // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
     //                                 end part 4
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=======
+  controllerNode():e3(0,0,1),F2W(4,4),hz(1000.0),xd(0,-9,7){
+
+      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      //  PART 2 |  Initialize ROS callback handlers
+      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+      //
+      // In this section, you need to initialize your handlers from part 1.
+      // Specifically:
+      //  - bind controllerNode::onDesiredState() to the topic "desired_state"
+      //  - bind controllerNode::onCurrentState() to the topic "current_state"
+      //  - bind controllerNode::controlLoop() to the created timer, at frequency
+      //    given by the "hz" variable
+      //
+      // Hints: 
+      //  - use the nh variable already available as a class member
+      //  - read the lab 3 handout to fnd the message type
+      //
+      // ~~~~ begin solution
+      
+      desired_state = nh.subscribe("desired_state", 1000, &controllerNode::onDesiredState, this);
+      current_state = nh.subscribe("current_state", 1000, &controllerNode::onCurrentState, this);
+      prop_speeds = nh.advertise<mav_msgs::Actuators>("rotor_speed_cmds", 1000);
+      timer = nh.createTimer(ros::Rate(hz), &controllerNode::controlLoop, this);
+
+      // ~~~~ end solution
+
+      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+      //                                 end part 2
+      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      //  PART 6 [NOTE: save this for last] |  Tune your gains!
+      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+      //
+      // Live the life of a control engineer! Tune these parameters for a fast
+      // and accurate controller.
+      //
+      // Controller gains
+      //
+
+      nh.getParam("/params/kx", kx);
+      nh.getParam("/params/kv", kv);
+      nh.getParam("/params/kr", kr);
+      nh.getParam("/params/komega", komega);
+
+      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+      //                                 end part 6
+      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+      // Initialize constants
+      m = 1.0;
+      cd = 1e-5;
+      cf = 1e-3;
+      g = 9.81;
+      d = 0.3;
+      yawd = PI/2;
+      J << 1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0;
+  }
+
+  void onDesiredState(const trajectory_msgs::MultiDOFJointTrajectory& des_state){
+
+      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      //  PART 3 | Objective: fill in xd, vd, ad, yawd
+      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+      //
+      // 3.1 Get the desired position, velocity and acceleration from the in-
+      //     coming ROS message and fill in the class member variables xd, vd
+      //     and ad accordingly. You can ignore the angular acceleration.
+      //
+      // Hint: use "v << vx, vy, vz;" to fill in a vector with Eigen.
+      //
+      // ~~~~ begin solution
+      
+      // Position
+      geometry_msgs::Vector3 t = des_state.points[0].transforms[0].translation;
+      xd << t.x, t.y, t.z;
+      // ROS_INFO_NAMED("onDesiredState", "POS: %f %f %f", t.x, t.y, t.z);
+
+      // Velocities
+      geometry_msgs::Vector3 v = des_state.points[0].velocities[0].linear;
+      vd << v.x, v.y, v.z;
+      // ROS_INFO_NAMED("onDesiredState", "VEL: %f %f %f", v.x, v.y, v.z);
+
+      // Accelerations
+      geometry_msgs::Vector3 a = des_state.points[0].accelerations[0].linear;
+      ad << a.x, a.y, a.z;
+      // ROS_INFO_NAMED("onDesiredState", "ACC: %f %f %f", a.x, a.y, a.z);
+
+      // ~~~~ end solution
+      //
+      // 3.2 Extract the yaw component from the quaternion in the incoming ROS
+      //     message and store in the yawd class member variable
+      //
+      //  Hints:
+      //    - use the methods tf::getYaw(...)
+      //    - maybe you want to use also tf::quaternionMsgToTF(...)
+      //
+      // ~~~~ begin solution
+      
+      tf::Quaternion q;
+      tf::quaternionMsgToTF(des_state.points[0].transforms[0].rotation , q);
+      yawd = tf::getYaw(q);
+      if (v.x == 0) {
+        yawd = 0;
+      }
+      else {
+      yawd = atan2(v.y, v.x);
+      }
+      // ROS_INFO_NAMED("onDesiredState", "YAW: %f", yawd);
+
+      // ~~~~ end solution
+      //
+      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+      //                                 end part 3
+      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  }
+
+
+  void onCurrentState(const nav_msgs::Odometry& cur_state){
+      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      //  PART 4 | Objective: fill in x, v, R and omega
+      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+      //
+      // Get the current position and velocity from the incoming ROS message and
+      // fill in the class member variables x, v, R and omega accordingly.
+      //
+      //  CAVEAT: cur_state.twist.twist.angular is in the world frame, while omega
+      //          needs to be in the body frame!
+      //
+      // ~~~~ begin solution
+      
+      x << cur_state.pose.pose.position.x,cur_state.pose.pose.position.y,cur_state.pose.pose.position.z;
+      v << cur_state.twist.twist.linear.x,cur_state.twist.twist.linear.y,cur_state.twist.twist.linear.z;
+      omega << cur_state.twist.twist.angular.x,cur_state.twist.twist.angular.y,cur_state.twist.twist.angular.z;
+      Eigen::Quaterniond q;
+      tf::quaternionMsgToEigen (cur_state.pose.pose.orientation, q);
+      R = q.toRotationMatrix();
+
+      // Rotate omega
+      omega = R.transpose()*omega;
+
+      // ~~~~ end solution
+      //
+      // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+      //                                 end part 4
+      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>>>>>>> main
   }
 
   void controlLoop(const ros::TimerEvent &t) {
@@ -417,7 +573,12 @@ public:
   }
 };
 
+<<<<<<< HEAD
 int main(int argc, char **argv) {
+=======
+int main(int argc, char** argv)
+{
+>>>>>>> main
   ros::init(argc, argv, "controller_node");
   ROS_INFO_NAMED("controller", "Controller started!");
   controllerNode n;
