@@ -1,0 +1,125 @@
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{gensymb}
+\usepackage{graphicx}
+\usepackage{comment,xspace}
+\usepackage{hyperref}
+%\usepackage{algorithm,algorithmic} 
+\usepackage{fancybox}
+
+%\newcommand{\todo}[1]{\par\noindent{\color{red}\raggedright\sc{#1}
+%    \par\marginpar{\Large \bf $\star$}}}
+
+%%%%%
+%% If you use a font encoding package, please enter it here, i.e.,
+%  \usepackage{T1enc}
+
+%% How many levels of section head would you like numbered?
+%% 0= no section numbers, 1= section, 2= subsection, 3= subsubsection
+%%==>>
+\setcounter{secnumdepth}{3}
+\graphicspath{{../figs/}}
+
+%%For margin comments
+%\newcommand{\todomar}[1]{\marginpar{\tiny\color{red}#1}}
+%% Math defs
+
+%For theorems
+\newtheorem{assump}{Assumption}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{problem}{Problem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\real}{{\mathbb{R}}}
+\newcommand{\reals}{\real}
+\newcommand{\sphere}{{\mathbb{S}}}
+\renewcommand{\natural}{{\mathbb{N}}}
+\newcommand{\naturals}{\natural}
+
+\newcommand{\poiss}{\text{Poisson}}
+\newcommand{\xfree}{\mathcal X_{\text{free}}}
+\newcommand{\xobs}{\mathcal X_{\text{obs}}}
+\newcommand{\xgoal}{\mathcal X_{\text{goal}}}
+\newcommand{\FMT}{$\text{FMT}^*\, $}
+
+
+\newcommand{\eps}{\varepsilon}
+\newcommand{\He}{H_{\eps}}
+\newcommand{\co}{\operatorname{co}}
+\newcommand{\ov}{\overline}
+\newcommand{\sign}{\operatorname{sign}}
+\newcommand{\vers}{\operatorname{vers}}
+\newcommand{\union}{\cup}
+
+\newcommand{\map}[3]{#1: #2 \rightarrow #3}
+\newcommand{\setdef}[2]{\left\{#1 \; | \; #2\right\}}
+\newcommand{\until}[1]{\{1,\dots,#1\}}
+\newcommand{\proj}[1]{\operatorname{proj}_{#1}}
+\newcommand{\Ve}{\operatorname{Ve}}
+\newcommand{\pder}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\tder}[2]{\frac{d #1}{d #2}}
+%\newcommand{\margin}[1]{\marginpar{\tiny\ttfamily#1}}
+
+\newcommand{\subscr}[2]{#1_{\textup{#2}}}
+
+\newcommand{\TSP}{\ensuremath{\operatorname{TSP}}}
+\newcommand{\MSP}{\ensuremath{\operatorname{MSP}}}
+\newcommand{\MST}{\ensuremath{\operatorname{MST}}}
+\newcommand{\OSS}{\ensuremath{\operatorname{OSS}}}
+\newcommand{\sRH}{\textup{sRH}\xspace}
+\newcommand{\mRH}{\textup{mRH}\xspace}
+\newcommand{\mRHFG}{\textup{mRHFG}\xspace}
+
+\newcommand{\card}{\operatorname{card}}
+
+\newcommand{\Vol}{\operatorname{Vol}}
+\newcommand{\Area}{\operatorname{Area}}
+\newcommand{\limn}{\lim_{n \rightarrow \infty}}
+\newcommand{\limni}[1]{\lim_{n_{#1} \rightarrow \infty}}
+\newcommand{\diam}{\operatorname{diam}}
+
+
+
+%\newcommand{\proof}{\noindent{\bf Proof: \indent}}
+%\newcommand{\proofover}{\hfill\vrule height8pt width6pt depth
+%                0pt\newline}
+
+\newcommand{\argmin}{\operatornamewithlimits{argmin}}
+\newcommand{\reg}{$^{\textrm{\tiny\textregistered}}$}
+\newcommand{\liml}{\lim_{\lambda \rightarrow +\infty}}
+
+
+
+\newcommand{\p}[1]{\mbox{$\mathbb{P}\left(#1\right)$}} 
+\newcommand{\expectation}[1]{\mbox{$\mathbb{E}\left[#1\right]$}} 
+\newcommand{\probcond}[2]{\mbox{$\mathbb{P}\left(#1 \,| \, #2\right)$}} 
+\newcommand{\condexpectation}[2]{\mbox{$\mathbb{E}\left(#1| #2\right)$}} 
+\newcommand{\iteratedexpectation}[2]{\mbox{$\mathbb{E}\left(\mathbb{E}\left(#1| #2\right)\right)$}} 
+
+% Added for KFMT
+\newcommand{\LL}{\mathcal{L}}
+\newcommand{\M}{\mathcal{M}}
+\newcommand{\Mobs}{\mathcal{M}_{\text{obs}}}
+\newcommand{\Mfree}{\mathcal{M}_{\text{free}}}
+\newcommand{\Mgoal}{\mathcal{M}_{\text{goal}}}
+\newcommand{\tx}{\tilde x}
+\newcommand{\cl}{\operatorname{cl}}
+\newcommand{\VF}{\operatorname{VF}}
+\newcommand{\SF}{\texttt{SampleFree}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\emin}{\epsilon_{\min}}
+\newcommand{\amin}{a_{\min}}
+\newcommand{\Amax}{A_{\max}}
+\newcommand{\xinit}{x_{\text{init}}}
+\newcommand{\pol}{\text{pol}}
+\newcommand{\inte}{\text{int}}
+\newcommand{\boxw}{\text{Box}^w}
+\newcommand{\nti}{n\to\infty}
+\newcommand{\ti}{\to\infty}
+\newcommand{\X}{\mathcal{X}}
+\newcommand{\KFMT}{$\text{KFMT}^*\, $}
