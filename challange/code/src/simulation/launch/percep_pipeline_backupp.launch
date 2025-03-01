@@ -1,0 +1,76 @@
+<launch>
+  <node pkg="nodelet" type="nodelet" name="nodelet_manager" args="manager" />
+  <node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen" />
+
+  <!-- Generate point cloud from depth image -->
+  <node pkg="nodelet" type="nodelet" name="nodelet_point_cloud"
+        args="load depth_image_proc/point_cloud_xyz nodelet_manager">
+    <remap from="camera_info" to="/realsense/depth/camera_info"/>
+    <remap from="image_rect" to="/realsense/depth/image"/>
+    <remap from="points" to="/realsense/depth/pointcloud"/>
+  </node>
+
+  <!-- Run a VoxelGrid filter to clean NaNs and downsample the data -->
+  <node pkg="nodelet" type="nodelet" name="voxel_grid_x" args="load pcl/VoxelGrid pcl_manager" output="screen">
+    <remap from="~input" to="/realsense/depth/pointcloud"/>
+    <rosparam>
+      filter_field_name: x
+      filter_limit_min: -200
+      filter_limit_max: 200
+      filter_limit_negative: False
+      leaf_size: 0.1
+    </rosparam>
+  </node>
+
+  <node pkg="nodelet" type="nodelet" name="voxel_grid_y" args="load pcl/VoxelGrid pcl_manager" output="screen">
+  <remap from="~input" to="/voxel_grid_x/output"/>
+  <rosparam>
+    filter_field_name: y
+    filter_limit_min: -200
+    filter_limit_max: 200
+    filter_limit_negative: False
+    leaf_size: 0.1
+  </rosparam>
+</node>
+
+  <node pkg="nodelet" type="nodelet" name="voxel_grid_z" args="load pcl/VoxelGrid pcl_manager" output="screen">
+  <remap from="~input" to="/voxel_grid_y/output"/>
+  <rosparam>
+    filter_field_name: z
+    filter_limit_min: -200
+    filter_limit_max: 200
+    filter_limit_negative: False
+    leaf_size: 0.1
+  </rosparam>
+</node>
+
+<!-- <node pkg="nodelet" type="nodelet" name="voxel_grid" args="load pcl/VoxelGrid pcl_manager" output="screen">
+  <remap from="~input" to="/realsense/depth/pointcloud"/>  
+  <remap from="~output" to="/filtered_pointcloud"/>      
+  <rosparam>
+    leaf_size: 0.1 
+  </rosparam>
+</node> -->
+
+
+<!-- Generate OctoMap from filtered point cloud -->
+<node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
+  <param name="resolution" value="1.5" />
+  
+  <!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
+  <param name="frame_id" type="string" value="map" />
+  
+  <!-- maximum range to integrate (speedup!) -->
+  <param name="sensor_model/max_range" value="50" />
+  <!-- <param name="sensor_model/hit" value="0.9" />    
+  <param name="sensor_model/miss" value="0.1" />  
+  <param name="sensor_model/min" value="0.12" /> 
+  <param name="sensor_model/max" value="0.97" /> -->
+  
+  <!-- data source to integrate (PointCloud2) -->
+  <remap from="cloud_in" to="/voxel_grid_z/output" />
+  <!-- <remap from="cloud_in" to="/realsense/depth/pointcloud" /> -->
+
+
+</node>
+</launch>
