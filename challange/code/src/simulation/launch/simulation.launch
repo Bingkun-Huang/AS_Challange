@@ -18,13 +18,17 @@
     <arg name="depth_info_topic" value="$(arg depth_info_topic)" />
   </include>
 
+
+  <include file="$(find simulation)/launch/percep_pipeline.launch" >
+  </include>
+
   <node name="Simulation" pkg="simulation" type="Simulation.x86_64"/>
 
   <node pkg="simulation"
         type="state_estimate_corruptor_node"
         name="state_estimate_corruptor"
         output="screen">
-
+        
     <!-- random-walk drift factor (grows with distance traveled) (sigma / m) -->
     <param if="$(arg corrupt_state_estimate)" name="drift_rw_factor" value="0.03"/>
     <param unless="$(arg corrupt_state_estimate)" name="drift_rw_factor" value="0.0"/>
@@ -38,10 +42,16 @@
     <param unless="$(arg corrupt_state_estimate)" name="jump_seconds" value="-1.0"/>
   </node>
 
-  <node name="w_to_unity" pkg="simulation" type="w_to_unity"/>
+  <node name="w_to_unity" pkg="simulation" type="w_to_unity" output="screen"/>
   
-  <node name="controller_node" pkg="controller_pkg" type="controller_node"/>
-  
+  <node name="controller_node" pkg="controller_pkg" type="controller_node" output="screen"/>
+<!-- 
+  <node name="path_planner" pkg="path_planner_pkg" type="path_planner" output="screen"/>
+
+  <node name="center_corrector" pkg="path_planner_pkg" type="centor_corrector" output="screen"/>
+
+  <include file="$(find traj_gen_pkg)/launch/traj_gen.launch" >
+  </include> -->
 
 
 
@@ -58,8 +68,26 @@
         name="sim_right_camera"      args="0 0.05 0 0 0 0 /camera /Quadrotor/RGBCameraRight" />
 
   <node pkg="tf2_ros" type="static_transform_publisher"
-        name="camera_to_body"      args="0 0 0 0 0 0 /true_body /camera" />
+        name="camera_to_body"      args="0.1 0 0 0 0 0 /true_body /camera" />
 
   <node pkg="tf2_ros" type="static_transform_publisher"
         name="depth_camera_to_body"      args="0 0 0 0 0 0 /true_body /depth_camera" />
+
+  <node pkg="tf2_ros" type="static_transform_publisher"
+        name="point_cloud_to_body"      args="0 0 0 0.5 -0.5 0.5 -0.5 /true_body /Quadrotor/Sensors/DepthCamera" />
+
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher"
+        name="map_to_world"      args="-304 5 12 0 0 0 /world /map" /> -->
+
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher"
+        name="map_to_world"      args="0 0 0 0 0 0 /world /map" />      -->
+
+  <node pkg="tf2_ros" type="static_transform_publisher"
+        name="world_to_map"      args="0 0 0 0 0 0 /map /world" />   
+
+  <node pkg="tf2_ros" type="static_transform_publisher"
+        name="white_noise_body"      args="0 0 0 0 0 0 /body /Quadrotor/TrueState" />          
+
+
+ <node pkg="rviz" type="rviz" name="rviz" args="-d $(find simulation)/cfg/config.rviz" output="screen"/>      
 </launch>

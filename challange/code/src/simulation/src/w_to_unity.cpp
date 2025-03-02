@@ -60,7 +60,7 @@ class UDPPoseStreamer {
         memcpy(packet_data , &w, pose_size);
         dgram_client.sndto(&packet_data, packet_size, ip_address, port);
     }else{
-        std::cout <<"Received nans, not sending! \n";
+        // std::cout <<"Received nans, not sending! \n";
     }
   }
 
@@ -86,7 +86,7 @@ void wCallback(const mav_msgs::Actuators& cmd)
   Arr[2]=cmd.angular_velocities[2];
   Arr[3]=cmd.angular_velocities[3];
 
-  std::cout <<"Message received: "<< Arr[0] << " "  << Arr[1] << " "<< Arr [2] << " "  << Arr[3] << " " << "\n";
+  // std::cout <<"Message received: "<< Arr[0] << " "  << Arr[1] << " "<< Arr [2] << " "  << Arr[3] << " " << "\n";
 
   return;
 }

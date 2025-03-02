@@ -1,0 +1,8 @@
+<launch>
+
+        <!--- Path planner -->
+        <!-- <rosparam command="load" file="$(find traj_gen_pkg)/cfg/traj_config.yaml"/> -->
+        <node name="path_planner" pkg="astar_path_planner" type="path_planner" output="screen"></node>
+        
+
+</launch>

@@ -20,6 +20,11 @@ find_package(catkin REQUIRED COMPONENTS
   mav_msgs
   eigen_conversions
   tf_conversions
+  cv_bridge
+  image_transport
+  sensor_msgs
+  pcl_ros
+  pcl_conversions
 )
 
 catkin_package(CATKIN_DEPENDS 
@@ -29,6 +34,11 @@ catkin_package(CATKIN_DEPENDS
   tf
   eigen_conversions
   tf_conversions
+  cv_bridge
+  image_transport
+  sensor_msgs
+  pcl_ros
+  pcl_conversions
 )
 
 find_package(Eigen3)
@@ -36,7 +46,6 @@ find_package(Eigen3)
 include_directories(${catkin_INCLUDE_DIRS})
 add_executable(controller_node src/controller_node.cpp)
 add_dependencies(controller_node ${catkin_EXPORTED_TARGETS})
-
 target_link_libraries(controller_node ${catkin_LIBRARIES})
 
 add_executable(traj_publisher src/traj_publisher.cpp)
