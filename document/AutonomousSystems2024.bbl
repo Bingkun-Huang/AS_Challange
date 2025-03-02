@@ -7,8 +7,7 @@
 \providecommand{\BIBentrySTDinterwordspacing}{\spaceskip=0pt\relax}
 \providecommand{\BIBentryALTinterwordstretchfactor}{4}
 \providecommand{\BIBentryALTinterwordspacing}{\spaceskip=\fontdimen2\font plus
-\BIBentryALTinterwordstretchfactor\fontdimen3\font minus
-  \fontdimen4\font\relax}
+\BIBentryALTinterwordstretchfactor\fontdimen3\font minus \fontdimen4\font\relax}
 \providecommand{\BIBforeignlanguage}[2]{{%
 \expandafter\ifx\csname l@#1\endcsname\relax
 \typeout{** WARNING: IEEEtran.bst: No hyphenation pattern has been}%
@@ -22,9 +21,6 @@
 \BIBdecl
 
 \bibitem{richter2016polynomial}
-C.~Richter, A.~Bry, and N.~Roy, ``Polynomial trajectory planning for aggressive
-  quadrotor flight in dense indoor environments,'' in \emph{Robotics
-  Research}.\hskip 1em plus 0.5em minus 0.4em\relax Springer, 2016, pp.
-  649--666.
+C.~Richter, A.~Bry, and N.~Roy, ``Polynomial trajectory planning for aggressive quadrotor flight in dense indoor environments,'' in \emph{Robotics Research}.\hskip 1em plus 0.5em minus 0.4em\relax Springer, 2016, pp. 649--666.
 
 \end{thebibliography}
