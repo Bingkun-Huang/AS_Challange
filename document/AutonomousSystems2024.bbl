@@ -7,7 +7,8 @@
 \providecommand{\BIBentrySTDinterwordspacing}{\spaceskip=0pt\relax}
 \providecommand{\BIBentryALTinterwordstretchfactor}{4}
 \providecommand{\BIBentryALTinterwordspacing}{\spaceskip=\fontdimen2\font plus
-\BIBentryALTinterwordstretchfactor\fontdimen3\font minus \fontdimen4\font\relax}
+\BIBentryALTinterwordstretchfactor\fontdimen3\font minus
+  \fontdimen4\font\relax}
 \providecommand{\BIBforeignlanguage}[2]{{%
 \expandafter\ifx\csname l@#1\endcsname\relax
 \typeout{** WARNING: IEEEtran.bst: No hyphenation pattern has been}%
@@ -20,7 +21,29 @@
 \providecommand{\BIBdecl}{\relax}
 \BIBdecl
 
+\bibitem{hornung13auro}
+\BIBentryALTinterwordspacing
+A.~Hornung, K.~M. Wurm, M.~Bennewitz, C.~Stachniss, and W.~Burgard,
+  ``{OctoMap}: An efficient probabilistic {3D} mapping framework based on
+  octrees,'' \emph{Autonomous Robots}, 2013, software available at
+  \url{https://octomap.github.io}. [Online]. Available:
+  \url{https://octomap.github.io}
+\BIBentrySTDinterwordspacing
+
 \bibitem{richter2016polynomial}
-C.~Richter, A.~Bry, and N.~Roy, ``Polynomial trajectory planning for aggressive quadrotor flight in dense indoor environments,'' in \emph{Robotics Research}.\hskip 1em plus 0.5em minus 0.4em\relax Springer, 2016, pp. 649--666.
+C.~Richter, A.~Bry, and N.~Roy, ``Polynomial trajectory planning for aggressive
+  quadrotor flight in dense indoor environments,'' in \emph{Robotics
+  Research}.\hskip 1em plus 0.5em minus 0.4em\relax Springer, 2016, pp.
+  649--666.
+
+\bibitem{6225337}
+J.~Pan, S.~Chitta, and D.~Manocha, ``Fcl: A general purpose library for
+  collision and proximity queries,'' in \emph{2012 IEEE International
+  Conference on Robotics and Automation}, 2012, pp. 3859--3866.
+
+\bibitem{9986703}
+Q.~Zhou and G.~Liu, ``Uav path planning based on the combination of a-star
+  algorithm and rrt-star algorithm,'' in \emph{2022 IEEE International
+  Conference on Unmanned Systems (ICUS)}, 2022, pp. 146--151.
 
 \end{thebibliography}
