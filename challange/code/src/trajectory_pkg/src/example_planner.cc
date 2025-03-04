@@ -9,7 +9,7 @@
 #include <thread>
 
 ExamplePlanner::ExamplePlanner()
-    : max_v_(0.5), max_a_(0.5), isArrived_(false),
+    : max_v_(3), max_a_(1), isArrived_(false),
       current_velocity_(Eigen::Vector3d::Zero()),
       current_pose_(Eigen::Affine3d::Identity()) {
 
@@ -41,9 +41,6 @@ ExamplePlanner::ExamplePlanner()
 
 void ExamplePlanner::onWaypoints(const nav_msgs::Path::ConstPtr &path) {
   for (const auto &it : path->poses) {
-    ROS_INFO("Get way point %.3f, %.3f, %.3f", it.pose.position.x,
-             it.pose.position.y, it.pose.position.z);
-
     Eigen::Vector3d new_pos(it.pose.position.x, it.pose.position.y,
                             it.pose.position.z);
     pos_queue.push(new_pos);
@@ -128,21 +125,22 @@ bool ExamplePlanner::publishTrajectory(
   return true;
 }
 
+
 bool ExamplePlanner::isArrived(const Eigen::VectorXd &goal_pos) {
 
   double distance = 0;
 
-  double cur_x = current_pose_.translation().x();
-  double cur_y = current_pose_.translation().y();
-  double cur_z = current_pose_.translation().z();
+  double current_x = current_pose_.translation().x();
+  double current_y = current_pose_.translation().y();
+  double current_z = current_pose_.translation().z();
 
   double goal_x = goal_pos.x();
   double goal_y = goal_pos.y();
   double goal_z = goal_pos.z();
 
   distance =
-      std::sqrt(std::pow(goal_x - cur_x, 2) + std::pow(goal_y - cur_y, 2) +
-                std::pow(goal_z - cur_z, 2));
+      std::sqrt(std::pow(goal_x - current_x, 2) + std::pow(goal_y - current_y, 2) +
+                std::pow(goal_z - current_z, 2));
 
   if (distance > 3.0) {
     return false;
@@ -153,14 +151,15 @@ bool ExamplePlanner::isArrived(const Eigen::VectorXd &goal_pos) {
 
 bool ExamplePlanner::isIdle() {
 
-  double cur_v_x = current_velocity_.x();
-  double cur_v_y = current_velocity_.y();
-  double cur_v_z = current_velocity_.z();
+  double current_velocity_x = current_velocity_.x();
+  double current_velocity_y = current_velocity_.y();
+  double current_velocity_z = current_velocity_.z();
 
-  double cur_v =
-      sqrt(cur_v_x * cur_v_x + cur_v_y * cur_v_y + cur_v_z * cur_v_z);
-
-  if (cur_v > 0.001) {
+  double current_velocity =
+      sqrt(std::pow(current_velocity_x, 2) + std::pow(current_velocity_y, 2) +
+      std::pow(current_velocity_z, 2));
+      
+  if (current_velocity > 0.001) {
     return false;
   }
 
