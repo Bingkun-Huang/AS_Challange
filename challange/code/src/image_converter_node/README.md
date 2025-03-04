@@ -1,102 +1,114 @@
-# Image Converter Node
 
-This ROS node subscribes to semantic (color) images, depth images, and camera intrinsic parameters, then processes these inputs to detect a particular colored object and estimate its 3D position in the world frame. The node includes optional publishing of visualization markers to RViz for debugging.
+# Image Converter Node
 
 ## Overview
 
-1.**Semantic Image Processing**
+The **Image Converter Node** processes semantic (RGB) and depth images to detect a specific object (e.g., a lantern) in a UAV system. It extracts the object’s pixel coordinates from the semantic image using thresholding and morphological operations, retrieves the corresponding depth value from the depth image, converts the 2D image coordinates into a 3D point in the camera frame using intrinsic parameters, and finally transforms this 3D point into the world coordinate frame using TF2. The node then publishes the detected position as a `geometry_msgs/PointStamped` message and also visualizes it in RViz using a marker.
 
-- Subscribes to a topic of color (semantic) images.
-- Converts the image to grayscale and performs thresholding to isolate a specific color intensity (tuned for a yellow-like value).
-- Uses morphological operations to filter noise.
-- Identifies contours to locate objects of interest.
-- Extracts the object's bounding box and its centroid.
+## Algorithm Overview
 
-2.**Depth Image Processing**
+1. **Semantic Image Processing**
 
-- Subscribes to a depth image topic.
-- Takes the previously determined 2D centroid and retrieves the corresponding depth (in millimeters).
-- Converts this 2D point with depth data into a 3D point in the camera coordinate frame using the camera intrinsic matrix.
+   - **Image Conversion**: Converts the ROS image (RGB) into an OpenCV BGR image.
+   - **Grayscale & Thresholding**: Converts to grayscale and applies a fixed intensity threshold to isolate the object of interest.
+   - **Morphological Operations**: Uses dilation and closing to reduce noise and merge close regions.
+   - **Contour Detection & Centroid**: Finds contours in the binary mask, selects the largest one, and calculates the bounding box centroid.
+2. **Depth Image Processing**
 
-3.**Coordinate Transformation**
+   - **Depth Extraction**: Retrieves the depth value (in millimeters) at the centroid and converts it to meters.
+   - **3D Conversion**: Forms a homogeneous coordinate vector and multiplies by the inverse of the camera intrinsic matrix to get camera-frame 3D coordinates.
+3. **Coordinate Transformation**
 
-- Uses TF2 to transform the camera-frame 3D point into the "world" frame.
-- Verifies the availability of a transform before converting the point.
+   - **TF Transform**: Transforms the 3D point from the camera coordinate frame to the world frame using TF2.
+4. **Publishing**
 
-4.**Publishing**
+   - **PointStamped**: Publishes the final 3D position in the world frame.
+   - **Marker**: Optionally publishes a visualization marker to help visualize the point in RViz.
 
-- Optionally publishes the transformed 3D point.
-- Publishes a visualization marker (a sphere) in RViz to illustrate the detected object's position.
+---
 
 ## Subscribed Topics
 
--`/unity_ros/Quadrotor/Sensors/SemanticCamera/image_raw` (sensor_msgs/Image)
+| **Topic Name**                                      | **Message Type**     | **Description**                         |
+| --------------------------------------------------------- | -------------------------- | --------------------------------------------- |
+| `/unity_ros/Quadrotor/Sensors/SemanticCamera/image_raw` | `sensor_msgs/Image`      | Semantic image input from a simulated camera. |
+| `/realsense/depth/image`                                | `sensor_msgs/Image`      | Depth image input from a depth camera.        |
+| `/realsense/depth/camera_info`                          | `sensor_msgs/CameraInfo` | Camera intrinsic parameters.                  |
 
-  Provides the semantic color images for object detection.
-
--`/realsense/depth/image` (sensor_msgs/Image)
-
-  Supplies depth information (16-bit encoding).
-
--`realsense/depth/camera_info` (sensor_msgs/CameraInfo)
-
-  Delivers intrinsic camera parameters used for 2D-to-3D conversion.
+---
 
 ## Published Topics
 
--`point/latern` (geometry_msgs/PointStamped)
+| **Topic Name**     | **Message Type**         | **Description**                               |
+| ------------------------ | ------------------------------ | --------------------------------------------------- |
+| `point/latern`         | `geometry_msgs/PointStamped` | The detected lantern's position in the world frame. |
+| `visualization_marker` | `visualization_msgs/Marker`  | Visualization marker for RViz display.              |
 
-  Optional publication of the object’s 3D position in the "Quadrotor/Sensors/DepthCamera" frame, transformed to the "world" frame (commented out by default).
+---
 
--`visualization_marker` (visualization_msgs/Marker)
+## Node Details
 
-  RViz marker for visualizing the object’s location in the “world” coordinate frame.
+| **Component**      | **Description**                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `ImageConverter` Class | Handles image processing, depth extraction, coordinate transformation, and marker publishing.                 |
+| `onSemImg()`           | Processes the semantic (RGB) image, detects the object, and extracts its centroid.                            |
+| `onDepthImg()`         | Retrieves the depth value at the centroid, converts 2D coordinates to 3D, and transforms them to world frame. |
+| `onDepthInfo()`        | Retrieves camera intrinsic parameters from the camera info message.                                           |
 
-## Node Name
+---
 
--**image_converter**
+## Dependencies
 
-  Defined in the main function as `ros::init(argc, argv, "image_converter");`.
+This node relies on the following ROS packages and external libraries:
 
-## How It Works
+- **ROS Packages**:
 
-1.**Semantic Image Callback** (`onSemImg`)
+  - `roscpp`
+  - `image_transport`
+  - `cv_bridge`
+  - `sensor_msgs`
+  - `tf2_ros`
+  - `geometry_msgs`
+  - `visualization_msgs`
+- **Libraries**:
 
-   Detects objects by thresholding a critical pixel intensity in grayscale. Morphological operations refine the mask, and valid contours give bounding boxes. The bounding box's centroid is highlighted for subsequent depth lookup.
+  - **OpenCV**
+  - **Eigen** (if needed for linear algebra operations)
 
-2.**Depth Image Callback** (`onDepthImg`)
+---
 
-   Retrieves the depth at the centroid. Converts pixel coordinates and depth to camera coordinates, then uses TF2 to transform the point to "world." Optionally publishes the point and a 3D marker.
+## How to Run
 
-3.**Camera Info Callback** (`onDepthInfo`)
-
-   Updates the camera's intrinsic matrix and timestamp used for consistent time alignment.
-
-## Requirements
-
-- ROS (tested with melodic/noetic or comparable version).
-- OpenCV for image processing (including highgui and imgproc).
-- cv_bridge for bridging ROS and OpenCV.
-- TF2 for coordinate transformations.
-
-## Usage
-
-1. Ensure that the necessary topics:
-
-- Semantic image (`/unity_ros/Quadrotor/Sensors/SemanticCamera/image_raw`)
-- Depth image (`/realsense/depth/image`)
-- Camera info (`/realsense/depth/camera_info`)
-
-  are being published by your system.
-
-2. Build and run this node:
+1. **Build the Package**Place this package in your Catkin workspace (e.g., `~/catkin_ws/src/image_converter_node`), then compile:
 
    ```bash
+   cd ~/catkin_ws
    catkin build
+   source devel/setup.bash
+   ```
+2. **Launch the Node**
+
+   ```bash
    rosrun image_converter_node sem_img_proc_node
    ```
-3. In RViz (optional), select the “visualization_marker” topic from this node to visualize the 3D marker corresponding to the detected object in the “world” frame.
+3. **RViz Setup**
+
+   - Set **Fixed Frame** to `world`.
+   - Add a **Marker** display subscribing to `/visualization_marker`.
+   - (Optionally) add a **Point** or **PointStamped** display for `point/latern`.
+
+---
+
+
 ## Test Video
+
 ```bash
 https://drive.google.com/drive/folders/1NU2AQS5s1sfsz31FieOUfe_J1ipO6Qpv?usp=sharing
 ```
+
+
+---
+
+## Summary
+
+The **Image Converter Node** integrates semantic image processing and depth image analysis to provide accurate 3D localization of an object in the UAV’s environment. Its outputs (both as a `PointStamped` message and a marker in RViz) are useful for navigation, object tracking, or higher-level decision-making tasks in a mapped environment.
