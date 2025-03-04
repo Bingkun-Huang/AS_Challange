@@ -96,3 +96,7 @@ This ROS node subscribes to semantic (color) images, depth images, and camera in
    rosrun image_converter_node sem_img_proc_node
    ```
 3. In RViz (optional), select the “visualization_marker” topic from this node to visualize the 3D marker corresponding to the detected object in the “world” frame.
+## Test Video
+```bash
+https://drive.google.com/drive/folders/1NU2AQS5s1sfsz31FieOUfe_J1ipO6Qpv?usp=sharing
+```
